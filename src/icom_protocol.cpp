@@ -12,18 +12,16 @@ ICOMProtocol::ICOMProtocol(SerialBuffer &input_buffer, SerialBuffer &output_buff
     if (!we_have_a_complete_command())
       return 0;
 
+
+    in.get();
+    in.get();
+
     int command_size= 0;
-
-    *command_buffer++ = in.get();
-    *command_buffer++ = in.get();
-    command_size = 2;
-
     while (command_size < command_buffer_size && in[0] != 0xfd && in[0] != 0xfe) {
       *command_buffer++ = in.get();
       command_size++;
     }
-    *command_buffer++ = in.get();
-    command_size++;
+    in.get();
 
     return command_size;
 }
@@ -38,16 +36,16 @@ void ICOMProtocol::drop_any_garbage()
 {
   for (;;)
   {
-    if (in.count() == 0)
+    if (in.count() <= 0)
       return;
 
     if (in.count() == 1 && in[0] == 0xfe)
       return;
 
-    if (in.count() == 2 && in[1] == 0xfe)
+    if (in.count() == 2 && in[0] == 0xfe && in[1] == 0xfe)
       return;
 
-    if (in.count() > 2 && in[2] != 0xfe)
+    if (in.count() >= 3 && in[0] == 0xfe && in[1] == 0xfe && in[2] != 0xfe)
       return;
 
     in.get();
@@ -56,7 +54,7 @@ void ICOMProtocol::drop_any_garbage()
 
 bool ICOMProtocol::we_have_a_complete_command()
 {
-  if (in.count() < 3)
+  if (in.count() < 3) // need two header bytes, a trailer byte, and at least one payload byte.
     return false;
 
   if (in[0] != 0xfe || in[1] != 0xfe)

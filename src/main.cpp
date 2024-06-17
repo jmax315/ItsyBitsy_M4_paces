@@ -2,11 +2,12 @@
 
 #include "serial_buffer.h"
 #include "icom_protocol.h"
+#include "serial_pump.h"
 
 
 SerialBuffer in, out, debug;
 ICOMProtocol icom_layer(in, out);
-
+SerialPump icom_pump(Serial1, in, out);
 
 bool its_time_to_send()
 {
@@ -48,11 +49,7 @@ void loop() {
   unsigned char command_buffer[32];
   unsigned char dummy_command[]= {0xfe, 0xfe, 0xfe, 0xfe, 0x01, 0x02, 0x03, 0xfd, 0xfe, 0xfe};
 
-  while (Serial1.available() > 0 && in.free() > 0)
-    in.put(Serial1.read());
-
-  while (Serial1.availableForWrite() > 0 && out.count() > 0)
-    Serial1.write(out.get());
+  icom_pump.run();
 
   while (Serial.availableForWrite() > 0 && debug.count() > 0)
     Serial.write(debug.get());
